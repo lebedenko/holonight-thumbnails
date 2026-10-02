@@ -23,3 +23,19 @@ ctest --test-dir build/test --output-on-failure
 
 See [tooling/README.md](tooling/README.md) for presets, local dependency overrides, editor refresh,
 `task tooling:doctor`, and the independent Serena project.
+
+
+## Local CI rehearsal
+
+Run `task ci` with Git, Python 3, Task and an accessible Docker daemon; Podman is
+used when Docker is absent. The pinned linux/amd64 image needs an amd64 host or
+emulation and registry access. Local and hosted CI share Debug/Ninja configuration,
+full provider and installed-package tests, environment settings and compiler/Qt tools.
+
+Tracked edits and non-ignored new files enter read-only snapshots; untracked inputs
+are reported to add before pushing. Each lane uses a disposable writable copy and
+fresh build tree. Existing development builds stay untouched; only container layers
+may be reused. Complete logs, revision/dirty state, image identity, tool versions
+and results go to ignored `build/ci/`. Required failures return nonzero and print
+complete failure logs. Run launcher regressions with `python3 scripts/ci/test_launcher.py`.
+Publication, releases and artifact uploads remain remote operations.
