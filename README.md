@@ -11,13 +11,18 @@ Include `<holonight_thumbnails/cache.h>`. Construct a `HolonightThumbnails::Requ
 
 Raster entries with required standard metadata are reusable even when another application wrote them. Existing Files entries remain reusable when their policy tags are valid. SVG entries require the static SVG policy marker. The package never writes failure thumbnails or prunes old entries.
 
-Build and test with:
+Build and test with installed Qt >=6.11 Core/Gui and GTest >=1.14 CONFIG (testing only):
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build/debug -j4
-ctest --test-dir build/test --output-on-failure
+task deps PRESET=test
+cmake --preset test
+cmake --build --preset test --parallel 2
+ctest --preset test
 ```
+
+Normal configure/build/test commands validate prerequisites without acquiring packages or preparing
+providers. This library has no internal providers. `task deps` explicitly records installed prerequisite
+evidence. Set `HOLONIGHT_EXTERNAL_PREFIX` for an external installation, including paths containing spaces.
 
 ## Standalone developer tooling
 
@@ -27,15 +32,19 @@ See [tooling/README.md](tooling/README.md) for presets, local dependency overrid
 
 ## Local CI rehearsal
 
-Run `task ci` with Git, Python 3, Task and an accessible Docker daemon; Podman is
-used when Docker is absent. The pinned linux/amd64 image needs an amd64 host or
-emulation and registry access. Local and hosted CI share Debug/Ninja configuration,
-full provider and installed-package tests, environment settings and compiler/Qt tools.
+Run `task ci:prepare` explicitly to acquire the qualified pinned linux/amd64 Arch and REUSE images
+and record installed prerequisite/toolchain identities. Docker or Podman is required. Preparation needs
+registry access; subsequent `task ci` acceptance runs offline with `--pull=never --network=none`.
+Missing, stale or modified preparation fails before acceptance starts; incompatible evidence is preserved.
 
-Tracked edits and non-ignored new files enter read-only snapshots; untracked inputs
-are reported to add before pushing. Each lane uses a disposable writable copy and
-fresh build tree. Existing development builds stay untouched; only container layers
-may be reused. Complete logs, revision/dirty state, image identity, tool versions
-and results go to ignored `build/ci/`. Required failures return nonzero and print
-complete failure logs. Run launcher regressions with `python3 scripts/ci/test_launcher.py`.
-Publication, releases and artifact uploads remain remote operations.
+Four shared local/hosted lanes cover Debug provider tests and both CTest registrations, Release installation
+and an external-prefix consumer with spaces in its paths, canonical format/strict tidy, and REUSE.
+Caller UID/GID, rootless Podman keep-id, private runtime/cache directories, read-only source/preparation
+mounts and fresh writable build trees isolate acceptance. Parallelism defaults to two.
+
+Tracked edits and non-ignored new files enter snapshots; untracked inputs are reported to add before
+pushing. Full logs, artifacts, revision/dirty state and environment identities remain under ignored
+`build/ci/` and `build/ci-prepared/`. Development builds remain independent. Run launcher regressions
+with `python3 scripts/ci/test_launcher.py`; real discovery regressions run in the qualified build image.
+See [the dependency SDD](docs/sdd/external-dependency-management/SPEC.md) for evidence and limitations.
+Publication and submodule pinning require separate handoffs.

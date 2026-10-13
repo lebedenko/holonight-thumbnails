@@ -1,0 +1,116 @@
+{
+  "verification_date": "2026-10-13",
+  "audit_baseline": "2284b1822b0f8f856677e14d21d91e8fa10bd98c",
+  "implementation_baseline": "59fb2e92e8794e06db2ff8a1a6ec5cc1ebc66c03",
+  "ready_checkpoint": "91e3429",
+  "run": "build/ci/20261013T122552Z-hkum50st",
+  "report": {
+    "revision": "59fb2e92e8794e06db2ff8a1a6ec5cc1ebc66c03",
+    "status": " M .github/workflows/ci.yml\u0000 M CMakeLists.txt\u0000 M CMakePresets.json\u0000 M README.md\u0000 M Taskfile.yml\u0000 M docs/sdd/external-dependency-management/SPEC.md\u0000 M docs/sdd/local-ci/TASKS.md\u0000 M include/holonight_thumbnails/cache.h\u0000 M scripts/ci/images.json\u0000 M scripts/ci/lane.sh\u0000 M scripts/ci/run.py\u0000 M scripts/ci/test_launcher.py\u0000 M src/cache.cpp\u0000 M tests/cache_test.cpp\u0000 M tests/package-consumer/main.cpp\u0000 M tests/package-test.cmake\u0000 M tooling/README.md\u0000 M tooling/VERSION\u0000 M tooling/module.json\u0000 M tooling/workflow.py\u0000?? scripts/ci/test_dependencies.py\u0000?? tooling/dependencies.cmake\u0000?? tooling/external-packages.json\u0000?? tooling/external.py\u0000?? tooling/providers.cmake\u0000",
+    "platform": "linux/amd64",
+    "lanes": {
+      "build-test": {
+        "image": "ghcr.io/lebedenko/holonight-deps@sha256:37ca051c39d1688d6413c47d94b8c0f221152dac6981ec67d155f2c43ea17b40",
+        "exit_code": 0
+      },
+      "release": {
+        "image": "ghcr.io/lebedenko/holonight-deps@sha256:37ca051c39d1688d6413c47d94b8c0f221152dac6981ec67d155f2c43ea17b40",
+        "exit_code": 0
+      },
+      "static-checks": {
+        "image": "ghcr.io/lebedenko/holonight-deps@sha256:37ca051c39d1688d6413c47d94b8c0f221152dac6981ec67d155f2c43ea17b40",
+        "exit_code": 0
+      },
+      "licensing": {
+        "image": "docker.io/fsfe/reuse@sha256:85462a75c0f8efda09ddd190b92816b70e7662577c8427429e11e1b9f25a992e",
+        "exit_code": 0
+      }
+    },
+    "dirty": true,
+    "runtime": "Docker version 29.9.0, build f415da838b",
+    "preparation_identity": {
+      "images": {
+        "build": "ghcr.io/lebedenko/holonight-deps@sha256:37ca051c39d1688d6413c47d94b8c0f221152dac6981ec67d155f2c43ea17b40",
+        "licensing": "docker.io/fsfe/reuse@sha256:85462a75c0f8efda09ddd190b92816b70e7662577c8427429e11e1b9f25a992e"
+      },
+      "platform": "linux/amd64",
+      "inputs": {
+        "tooling/VERSION": "c28fcca53637bc88e124af1725df13cb98c69dedefd62fb3cdbe1cdb6b760624",
+        "tooling/module.json": "d58801d53dbb510435b25b25a3a3000a80ccda4e197e6cceaca2c8b6f0fc4f8c",
+        "tooling/dependencies.cmake": "853f6e856c455657a9bf56fc111c29f68f458d6ecc674dabc8b015698b0c9b61",
+        "tooling/providers.cmake": "5d6e7aae9f7f6874d9fa3cf5efca17cab8c3df88ea3b312633ece6341b592876",
+        "tooling/external.py": "2e87dc012d7cdda7235d5ea2e311a2a49272ff82eac5cf3ccec7841ec610df27",
+        "tooling/workflow.py": "6c9d0a80396e61072509437cd39168caf11ca31c8abd8259f50ce2c55434837e",
+        "tooling/external-packages.json": "fbe02f85a17db3583b02fb48659ccfb54e77b0480f76eb23c4a425353cc350a3",
+        "CMakeLists.txt": "6a9d17cf967d17868deb603bf55e1c716c13f328a61826f6a2327e4fb16bf831",
+        "CMakePresets.json": "35b9f47c5182dda1b971e83227e4697eaf4b4ecde42717cf6d3d50a6101fb662",
+        "scripts/ci/lane.sh": "3560518c74691a3bce4cdf5a17f33c9a50589b2775d68f88f79355f4f8410128",
+        "scripts/ci/run.py": "35384722d0764f03d08169c654127156d0582c7ab7aed4a4e937f808f1e9a699"
+      }
+    },
+    "untracked_inputs": [
+      "scripts/ci/test_dependencies.py",
+      "tooling/dependencies.cmake",
+      "tooling/external-packages.json",
+      "tooling/external.py",
+      "tooling/providers.cmake"
+    ]
+  },
+  "log_sha256": {
+    "build-test.log": "b5152996a5d5cb987222f5685779a523e7f20f17663be53510f59cd1605179f3",
+    "licensing.log": "39a7170f8b68f76c17c54f410774f6cad0a967f13c54c433503589a1690598a2",
+    "release.log": "5b86a83615c4994c260dbbecaadcdd9f1c22ef07e6109357ccae6f87bf51cdc2",
+    "static-checks.log": "0e40e1c950f47ca271bd361fd3d91abf7fce3ab35ce8b1b50500d0c72f0c5a7b"
+  },
+  "counts": {
+    "launcher": 8,
+    "dependency": 11,
+    "canonical_tooling": 32,
+    "ctest": 2,
+    "provider_cases": 11,
+    "tidy_translation_units": 3,
+    "staged_files": 8
+  },
+  "staged_files": [
+    "usr/include/holonight_thumbnails/cache.h",
+    "usr/lib/cmake/HolonightThumbnails/HolonightThumbnailsConfig.cmake",
+    "usr/lib/cmake/HolonightThumbnails/HolonightThumbnailsConfigVersion.cmake",
+    "usr/lib/cmake/HolonightThumbnails/HolonightThumbnailsTargets-release.cmake",
+    "usr/lib/cmake/HolonightThumbnails/HolonightThumbnailsTargets.cmake",
+    "usr/lib/libholonight_thumbnails.a",
+    "usr/share/licenses/holonight-thumbnails/GPL-3.0-or-later.txt",
+    "usr/share/licenses/holonight-thumbnails/LICENSE"
+  ],
+  "implementation_sha256": {
+    ".github/workflows/ci.yml": "6de378ec2a6219e8fc2642c560bcffe2b988bb71a03281b6cad9cb63aef7c7b3",
+    "CMakeLists.txt": "6a9d17cf967d17868deb603bf55e1c716c13f328a61826f6a2327e4fb16bf831",
+    "CMakePresets.json": "35b9f47c5182dda1b971e83227e4697eaf4b4ecde42717cf6d3d50a6101fb662",
+    "Taskfile.yml": "5f5daf5dde7dd65461b3a2dfe2d8343834d9b58ab8644753a891eb50ce409bbc",
+    "include/holonight_thumbnails/cache.h": "f20f4ff96f236fecf9bf02881df5105db96b28d341634518b96442cd5ce34231",
+    "scripts/ci/images.json": "971449c5da542cf20eb134eddf0abbbcdec1ea9f8d1edc517d980b21127aa5a7",
+    "scripts/ci/lane.sh": "3560518c74691a3bce4cdf5a17f33c9a50589b2775d68f88f79355f4f8410128",
+    "scripts/ci/run.py": "35384722d0764f03d08169c654127156d0582c7ab7aed4a4e937f808f1e9a699",
+    "scripts/ci/test_launcher.py": "3555dac2ef89c7cfa6efd866735743e81207c4d5d8a8ff56823c64679b7c62ea",
+    "src/cache.cpp": "771ec7756ca9457d3f22b303cbe7aad7075259a35eda09b8babc7ab360166dd4",
+    "tests/cache_test.cpp": "b75d3e6b4d75ac5a75e641433462c34d60c67d9dd0c4b37647662369d072edcf",
+    "tests/package-consumer/main.cpp": "d0e9775b73fe83032fec853fd2dd2be38b57fd386cf45cfe3d25b6140c790e6e",
+    "tests/package-test.cmake": "705a17ac623fec47f4adc41f3e3bb4f0486746579a6dd22e5edcf2e3bcce92b0",
+    "tooling/README.md": "884413a3d13d55a0e6b13f3748e2a9ca6d05626d65b96dbe45c1064fdcf398f7",
+    "tooling/VERSION": "c28fcca53637bc88e124af1725df13cb98c69dedefd62fb3cdbe1cdb6b760624",
+    "tooling/module.json": "d58801d53dbb510435b25b25a3a3000a80ccda4e197e6cceaca2c8b6f0fc4f8c",
+    "tooling/workflow.py": "6c9d0a80396e61072509437cd39168caf11ca31c8abd8259f50ce2c55434837e",
+    "scripts/ci/test_dependencies.py": "d7d38e277d4d24c1adfa25df5d2df1b5197a5c89e3404542fca071fa5ed76df9",
+    "tooling/dependencies.cmake": "853f6e856c455657a9bf56fc111c29f68f458d6ecc674dabc8b015698b0c9b61",
+    "tooling/external-packages.json": "fbe02f85a17db3583b02fb48659ccfb54e77b0480f76eb23c4a425353cc350a3",
+    "tooling/external.py": "2e87dc012d7cdda7235d5ea2e311a2a49272ff82eac5cf3ccec7841ec610df27",
+    "tooling/providers.cmake": "5d6e7aae9f7f6874d9fa3cf5efca17cab8c3df88ea3b312633ece6341b592876"
+  },
+  "deferred": [
+    "publication",
+    "umbrella pinning",
+    "real Podman execution",
+    "Debian qualification",
+    "Viewer/Files adoption",
+    "ecosystem integration"
+  ]
+}

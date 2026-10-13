@@ -5,3 +5,5 @@
 - [x] Run launcher regressions and clean full container acceptance.
 - [x] Verify source/build isolation, complete logs, licensing and final diff.
 - [x] Record results and create a local checkpoint.
+
+Current dependency preparation and four-lane acceptance supersede the original single-lane environment; see [EDM-010](../external-dependency-management/SPEC.md).

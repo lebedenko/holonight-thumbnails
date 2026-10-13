@@ -5,7 +5,7 @@ if(NOT result EQUAL 0)
   message(FATAL_ERROR "Provider install failed")
 endif()
 execute_process(COMMAND "${CMAKE_COMMAND}" -S "${SOURCE_DIR}" -B "${TEST_ROOT}/consumer"
-  -DCMAKE_PREFIX_PATH=${TEST_ROOT}/install RESULT_VARIABLE result)
+  "-DCMAKE_PREFIX_PATH=${TEST_ROOT}/install" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON RESULT_VARIABLE result)
 if(NOT result EQUAL 0)
   message(FATAL_ERROR "Installed package consumer configure failed")
 endif()
