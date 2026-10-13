@@ -1,5 +1,3 @@
-#include <holonight_thumbnails/cache.h>
-
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -8,7 +6,8 @@
 #include <QStandardPaths>
 
 #include <array>
-#include <cstring>
+#include <holonight_thumbnails/cache.h>
+#include <utility>
 
 namespace HolonightThumbnails {
 namespace {
@@ -20,11 +19,16 @@ constexpr auto kSvgPolicy = "self-contained-static-v1";
 
 QString tierName(int tier) {
   switch (tier) {
-    case 128: return QStringLiteral("normal");
-    case 256: return QStringLiteral("large");
-    case 512: return QStringLiteral("x-large");
-    case 1024: return QStringLiteral("xx-large");
-    default: return {};
+    case 128:
+      return QStringLiteral("normal");
+    case 256:
+      return QStringLiteral("large");
+    case 512:
+      return QStringLiteral("x-large");
+    case 1024:
+      return QStringLiteral("xx-large");
+    default:
+      return {};
   }
 }
 
@@ -43,17 +47,13 @@ bool sourceIsCacheEntry(const QUrl& uri) {
 }
 
 bool validRequest(const Request& request) {
-  return request.uri.isValid() && request.uri.isLocalFile() &&
-         !request.uri.hasQuery() && !request.uri.hasFragment() &&
+  return request.uri.isValid() && request.uri.isLocalFile() && !request.uri.hasQuery() && !request.uri.hasFragment() &&
          QFileInfo(request.uri.toLocalFile()).isAbsolute() && !sourceIsCacheEntry(request.uri) &&
          request.modified.isValid() && request.size >= 0 && tierForSize(request.required) &&
-         (request.tier == 0 || (!tierName(request.tier).isEmpty() &&
-                                request.tier >= *tierForSize(request.required)));
+         (request.tier == 0 || (!tierName(request.tier).isEmpty() && request.tier >= *tierForSize(request.required)));
 }
 
-int selectedTier(const Request& request) {
-  return request.tier == 0 ? *tierForSize(request.required) : request.tier;
-}
+int selectedTier(const Request& request) { return request.tier == 0 ? *tierForSize(request.required) : request.tier; }
 
 bool matches(const QImage& image, const Request& request) {
   if (image.isNull() || image.width() < request.required.width() || image.height() < request.required.height() ||
@@ -92,26 +92,22 @@ bool matches(const QImage& image, const Request& request) {
     return false;
   }
   const auto oldRevision = image.text(QStringLiteral("Files::Revision"));
-  if (!request.revision.isEmpty() && !oldRevision.isEmpty() && oldRevision != request.revision) {
-    return false;
-  }
-  return true;
+  return request.revision.isEmpty() || oldRevision.isEmpty() || oldRevision == request.revision;
 }
 
 bool isBoundedPng(const QByteArray& bytes, int tier) {
-  constexpr char signature[] = "\x89PNG\r\n\x1a\n";
-  if (bytes.size() < 33 || memcmp(bytes.constData(), signature, 8) != 0 ||
-      memcmp(bytes.constData() + 12, "IHDR", 4) != 0) {
+  if (bytes.size() < 33 || !bytes.startsWith(QByteArrayLiteral("\x89PNG\r\n\x1a\n")) ||
+      bytes.mid(12, 4) != QByteArrayLiteral("IHDR")) {
     return false;
   }
-  const auto* data = reinterpret_cast<const unsigned char*>(bytes.constData());
   auto number = [&](int offset) -> quint32 {
-    return (quint32(data[offset]) << 24) | (quint32(data[offset + 1]) << 16) |
-           (quint32(data[offset + 2]) << 8) | quint32(data[offset + 3]);
+    auto byte = [&](int index) { return static_cast<quint32>(static_cast<unsigned char>(bytes.at(index))); };
+    return (byte(offset) << 24) | (byte(offset + 1) << 16) | (byte(offset + 2) << 8) | byte(offset + 3);
   };
   const auto width = number(16);
   const auto height = number(20);
-  return number(8) == 13 && width > 0 && height > 0 && width <= quint32(tier) && height <= quint32(tier);
+  return number(8) == 13 && width > 0 && height > 0 && std::cmp_less_equal(width, tier) &&
+         std::cmp_less_equal(height, tier);
 }
 
 bool ensureDirectory(const QString& path) {
@@ -138,8 +134,8 @@ std::optional<int> tierForSize(QSize required) {
 }
 
 QString cachePath(const QUrl& uri, int tier) {
-  if (!uri.isValid() || !uri.isLocalFile() || !QFileInfo(uri.toLocalFile()).isAbsolute() ||
-      uri.hasQuery() || uri.hasFragment() || tierName(tier).isEmpty()) {
+  if (!uri.isValid() || !uri.isLocalFile() || !QFileInfo(uri.toLocalFile()).isAbsolute() || uri.hasQuery() ||
+      uri.hasFragment() || tierName(tier).isEmpty()) {
     return {};
   }
   const auto hash = QCryptographicHash::hash(canonicalUri(uri).toUtf8(), QCryptographicHash::Md5).toHex();
@@ -147,6 +143,8 @@ QString cachePath(const QUrl& uri, int tier) {
          QStringLiteral(".png");
 }
 
+// Preserve ordered cancellation checkpoints and tier fallback in one auditable operation.
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::optional<QImage> lookup(const Request& request, const std::atomic_bool& cancelled, const StageCallback& stage) {
   if (cancelled.load() || !validRequest(request)) {
     return std::nullopt;
@@ -162,16 +160,28 @@ std::optional<QImage> lookup(const Request& request, const std::atomic_bool& can
     if (!file.open(QIODevice::ReadOnly) || file.size() > kMaximumPngBytes) {
       continue;
     }
-    if (stage) stage(Stage::CacheInspect);
-    if (cancelled.load()) return std::nullopt;
+    if (stage) {
+      stage(Stage::CacheInspect);
+    }
+    if (cancelled.load()) {
+      return std::nullopt;
+    }
     const auto bytes = file.read(kMaximumPngBytes + 1);
-    if (stage) stage(Stage::CacheInspected);
-    if (cancelled.load()) return std::nullopt;
+    if (stage) {
+      stage(Stage::CacheInspected);
+    }
+    if (cancelled.load()) {
+      return std::nullopt;
+    }
     if (bytes.size() > kMaximumPngBytes || !isBoundedPng(bytes, tier)) {
       continue;
     }
-    if (stage) stage(Stage::CacheDecode);
-    if (cancelled.load()) return std::nullopt;
+    if (stage) {
+      stage(Stage::CacheDecode);
+    }
+    if (cancelled.load()) {
+      return std::nullopt;
+    }
     QImage image;
     if (image.loadFromData(bytes, "PNG") && matches(image, request) && !cancelled.load()) {
       return image;
@@ -201,7 +211,9 @@ bool store(const Request& request, const QImage& image, const std::atomic_bool& 
   tagged.setText(QStringLiteral("X-HoloNight::OrientationPolicy"), QLatin1String(kOrientationPolicy));
   tagged.setText(QStringLiteral("Files::OrientationPolicy"), QLatin1String(kOrientationPolicy));
   tagged.setText(QStringLiteral("Files::Revision"), {});
-  if (!request.revision.isEmpty()) tagged.setText(QStringLiteral("Files::Revision"), request.revision);
+  if (!request.revision.isEmpty()) {
+    tagged.setText(QStringLiteral("Files::Revision"), request.revision);
+  }
   if (request.kind == Kind::Svg) {
     tagged.setText(QStringLiteral("X-HoloNight::SvgPolicy"), QLatin1String(kSvgPolicy));
     tagged.setText(QStringLiteral("Files::SvgPolicy"), QLatin1String(kSvgPolicy));
@@ -221,7 +233,9 @@ bool store(const Request& request, const QImage& image, const std::atomic_bool& 
     file.cancelWriting();
     return false;
   }
-  if (stage) stage(Stage::BeforeCommit);
+  if (stage) {
+    stage(Stage::BeforeCommit);
+  }
   if (cancelled.load()) {
     file.cancelWriting();
     return false;

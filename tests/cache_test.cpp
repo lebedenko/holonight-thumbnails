@@ -1,5 +1,3 @@
-#include <holonight_thumbnails/cache.h>
-
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -7,7 +5,7 @@
 #include <QTemporaryDir>
 
 #include <gtest/gtest.h>
-
+#include <holonight_thumbnails/cache.h>
 #include <thread>
 #include <vector>
 
@@ -16,7 +14,7 @@ using namespace HolonightThumbnails;
 namespace {
 
 class CacheTest : public ::testing::Test {
- protected:
+ public:
   QTemporaryDir home;
   QByteArray prior = qgetenv("XDG_CACHE_HOME");
   bool hadPrior = qEnvironmentVariableIsSet("XDG_CACHE_HOME");
@@ -24,6 +22,7 @@ class CacheTest : public ::testing::Test {
   Request request;
   std::atomic_bool cancelled{false};
 
+ protected:
   void SetUp() override {
     ASSERT_TRUE(home.isValid());
     qputenv("XDG_CACHE_HOME", home.path().toUtf8());
@@ -32,22 +31,27 @@ class CacheTest : public ::testing::Test {
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     ASSERT_EQ(file.write("source", 6), 6);
     file.close();
-    request = {.uri = QUrl::fromLocalFile(source), .modified = QFileInfo(source).lastModified(),
-               .size = QFileInfo(source).size(), .required = {100, 100}};
+    request = {.uri = QUrl::fromLocalFile(source),
+               .modified = QFileInfo(source).lastModified(),
+               .size = QFileInfo(source).size(),
+               .required = {100, 100}};
   }
 
   void TearDown() override {
-    if (hadPrior) qputenv("XDG_CACHE_HOME", prior);
-    else qunsetenv("XDG_CACHE_HOME");
+    if (hadPrior) {
+      qputenv("XDG_CACHE_HOME", prior);
+    } else {
+      qunsetenv("XDG_CACHE_HOME");
+    }
   }
 
-  QImage image(int width = 128, int height = 128) {
+  static QImage image(int width = 128, int height = 128) {
     QImage value(width, height, QImage::Format_ARGB32);
     value.fill(Qt::red);
     return value;
   }
 
-  void external(const QImage& pixels, int tier = 128) {
+  void external(const QImage& pixels, int tier = 128) const {
     const auto path = cachePath(request.uri, tier);
     ASSERT_TRUE(QDir().mkpath(QFileInfo(path).absolutePath()));
     ASSERT_TRUE(pixels.save(path, "PNG"));
@@ -60,8 +64,8 @@ TEST_F(CacheTest, SelectsFreedesktopTiersAndUriHash) {
   EXPECT_EQ(tierForSize({257, 1}), 512);
   EXPECT_EQ(tierForSize({513, 1}), 1024);
   EXPECT_FALSE(tierForSize({1025, 1}));
-  const auto digest = QCryptographicHash::hash(request.uri.toString(QUrl::FullyEncoded).toUtf8(),
-                                               QCryptographicHash::Md5).toHex();
+  const auto digest =
+      QCryptographicHash::hash(request.uri.toString(QUrl::FullyEncoded).toUtf8(), QCryptographicHash::Md5).toHex();
   EXPECT_TRUE(cachePath(request.uri, 128).endsWith("/thumbnails/normal/" + QString::fromLatin1(digest) + ".png"));
   const auto redundant = QUrl::fromLocalFile(home.filePath("folder/../source.png"));
   EXPECT_EQ(cachePath(redundant, 128), cachePath(request.uri, 128));
@@ -137,7 +141,9 @@ TEST_F(CacheTest, CancellationAtCommitKeepsPreviousImage) {
   auto blue = image();
   blue.fill(Qt::blue);
   EXPECT_FALSE(store(request, blue, cancelled, [&](Stage stage) {
-    if (stage == Stage::BeforeCommit) cancelled.store(true);
+    if (stage == Stage::BeforeCommit) {
+      cancelled.store(true);
+    }
   }));
   cancelled.store(false);
   auto found = lookup(request, cancelled);
@@ -147,6 +153,7 @@ TEST_F(CacheTest, CancellationAtCommitKeepsPreviousImage) {
 
 TEST_F(CacheTest, ConcurrentStoresLeaveReadableEntry) {
   std::vector<std::thread> writers;
+  writers.reserve(8);
   for (int i = 0; i < 8; ++i) {
     writers.emplace_back([&, i] {
       auto pixels = image();
@@ -154,7 +161,9 @@ TEST_F(CacheTest, ConcurrentStoresLeaveReadableEntry) {
       store(request, pixels, cancelled);
     });
   }
-  for (auto& writer : writers) writer.join();
+  for (auto& writer : writers) {
+    writer.join();
+  }
   auto found = lookup(request, cancelled);
   ASSERT_TRUE(found);
   EXPECT_TRUE(found->pixelColor(0, 0) == QColor(Qt::red) || found->pixelColor(0, 0) == QColor(Qt::blue));

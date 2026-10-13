@@ -12,7 +12,10 @@
 
 namespace HolonightThumbnails {
 
+// Preserve the public enum representation.
+// NOLINTNEXTLINE(performance-enum-size)
 enum class Kind { Raster, Svg };
+// NOLINTNEXTLINE(performance-enum-size)
 enum class Stage { CacheInspect, CacheInspected, CacheDecode, BeforeCommit };
 using StageCallback = std::function<void(Stage)>;
 
