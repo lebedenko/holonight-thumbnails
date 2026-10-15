@@ -1,5 +1,7 @@
 # HoloNight Thumbnails
 
+For current build, test, container acceptance and provider workflows, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
 `holonight-thumbnails` is a synchronous Qt library for the user thumbnail cache defined by the [freedesktop thumbnail managing standard](https://specifications.freedesktop.org/thumbnail/latest-single/). It shares disk entries between HoloNight Files and Viewer. Source access, image decoding, jobs, and memory caches stay with callers.
 
 ```cmake
@@ -13,38 +15,4 @@ Raster entries with required standard metadata are reusable even when another ap
 
 Build and test with installed Qt >=6.11 Core/Gui and GTest >=1.14 CONFIG (testing only):
 
-```sh
-task deps PRESET=test
-cmake --preset test
-cmake --build --preset test --parallel 2
-ctest --preset test
-```
-
-Normal configure/build/test commands validate prerequisites without acquiring packages or preparing
-providers. This library has no internal providers. `task deps` explicitly records installed prerequisite
-evidence. Set `HOLONIGHT_EXTERNAL_PREFIX` for an external installation, including paths containing spaces.
-
-## Standalone developer tooling
-
-See [tooling/README.md](tooling/README.md) for presets, local dependency overrides, editor refresh,
-`task tooling:doctor`, and the independent Serena project.
-
-
-## Local CI rehearsal
-
-Run `task ci:prepare` explicitly to acquire the qualified pinned linux/amd64 Arch and REUSE images
-and record installed prerequisite/toolchain identities. Docker or Podman is required. Preparation needs
-registry access; subsequent `task ci` acceptance runs offline with `--pull=never --network=none`.
-Missing, stale or modified preparation fails before acceptance starts; incompatible evidence is preserved.
-
-Four shared local/hosted lanes cover Debug provider tests and both CTest registrations, Release installation
-and an external-prefix consumer with spaces in its paths, canonical format/strict tidy, and REUSE.
-Caller UID/GID, rootless Podman keep-id, private runtime/cache directories, read-only source/preparation
-mounts and fresh writable build trees isolate acceptance. Parallelism defaults to two.
-
-Tracked edits and non-ignored new files enter snapshots; untracked inputs are reported to add before
-pushing. Full logs, artifacts, revision/dirty state and environment identities remain under ignored
-`build/ci/` and `build/ci-prepared/`. Development builds remain independent. Run launcher regressions
-with `python3 scripts/ci/test_launcher.py`; real discovery regressions run in the qualified build image.
-See [the dependency SDD](docs/sdd/external-dependency-management/SPEC.md) for evidence and limitations.
-Publication and submodule pinning require separate handoffs.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for current native and container commands.
