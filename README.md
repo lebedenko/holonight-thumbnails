@@ -16,3 +16,21 @@ Raster entries with required standard metadata are reusable even when another ap
 Build and test with installed Qt >=6.11 Core/Gui and GTest >=1.14 CONFIG (testing only):
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for current native and container commands.
+
+## Isolated cache reads
+
+Build with `HOLONIGHT_THUMBNAILS_ISOLATED=ON` against installed isolated Images,
+then request `find_package(HolonightThumbnails CONFIG REQUIRED COMPONENTS Isolated)`
+and link `HolonightThumbnails::Isolated`. Include `holonight_thumbnails/isolated.h`.
+`lookupIsolated(request, client, cancelled, stage)` borrows the caller's explicitly
+configured `HolonightImages::IsolatedClient` and returns an optional `image`, a
+separate `runtime` status and `diagnostic`. A successful runtime with no image is
+a cache miss. Runtime failures and cancellation stop tier traversal; callers must
+not turn them into source-decoding fallbacks. Cleanup failure takes precedence.
+
+The isolated and legacy APIs share traversal, freshness, tier and text identity
+validation. PNG reads retain the 32 MiB encoded limit and tier-specific pixel
+bounds, including SVG-policy entries. Malformed/unsupported entries remain misses.
+Only isolated decoding uses the helper; writes and the legacy API are unchanged.
+The default target does not acquire an Images dependency. Native test coverage can
+be enabled with `HOLONIGHT_THUMBNAILS_TEST_RUNTIME` pointing at a prepared bundle.

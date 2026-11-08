@@ -1,3 +1,5 @@
+#include "lookup.h"
+
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -145,7 +147,8 @@ QString cachePath(const QUrl& uri, int tier) {
 
 // Preserve ordered cancellation checkpoints and tier fallback in one auditable operation.
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::optional<QImage> lookup(const Request& request, const std::atomic_bool& cancelled, const StageCallback& stage) {
+std::optional<QImage> detail::lookup(const Request& request, const std::atomic_bool& cancelled,
+                                     const StageCallback& stage, const Decoder& decode) {
   if (cancelled.load() || !validRequest(request)) {
     return std::nullopt;
   }
@@ -182,12 +185,23 @@ std::optional<QImage> lookup(const Request& request, const std::atomic_bool& can
     if (cancelled.load()) {
       return std::nullopt;
     }
-    QImage image;
-    if (image.loadFromData(bytes, "PNG") && matches(image, request) && !cancelled.load()) {
+    bool stop = false;
+    auto image = decode(bytes, tier, stop);
+    if (stop) {
+      return std::nullopt;
+    }
+    if (image && matches(*image, request) && !cancelled.load()) {
       return image;
     }
   }
   return std::nullopt;
+}
+
+std::optional<QImage> lookup(const Request& request, const std::atomic_bool& cancelled, const StageCallback& stage) {
+  return detail::lookup(request, cancelled, stage, [](const QByteArray& bytes, int, bool&) -> std::optional<QImage> {
+    QImage image;
+    return image.loadFromData(bytes, "PNG") ? std::optional{image} : std::nullopt;
+  });
 }
 
 bool store(const Request& request, const QImage& image, const std::atomic_bool& cancelled, const StageCallback& stage) {

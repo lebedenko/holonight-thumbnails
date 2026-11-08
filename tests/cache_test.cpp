@@ -9,6 +9,9 @@
 #include <thread>
 #include <vector>
 
+#ifdef THUMBNAILS_ISOLATED_TEST
+#include <holonight_thumbnails/isolated.h>
+#endif
 using namespace HolonightThumbnails;
 
 namespace {
@@ -24,6 +27,11 @@ class CacheTest : public ::testing::Test {
 
  protected:
   void SetUp() override {
+#ifdef THUMBNAILS_ISOLATED_TEST
+    if (QString::fromUtf8(THUMBNAILS_TEST_RUNTIME).isEmpty()) {
+      GTEST_SKIP() << "Explicit native runtime required";
+    }
+#endif
     ASSERT_TRUE(home.isValid());
     qputenv("XDG_CACHE_HOME", home.path().toUtf8());
     source = home.filePath("source.png");
@@ -45,6 +53,17 @@ class CacheTest : public ::testing::Test {
     }
   }
 
+#ifdef THUMBNAILS_ISOLATED_TEST
+  static std::optional<QImage> lookup(const Request& request, const std::atomic_bool& cancelled,
+                                      const StageCallback& stage = {}) {
+    auto result = lookupIsolated(request, HolonightImages::IsolatedClient(QString::fromUtf8(THUMBNAILS_TEST_RUNTIME)),
+                                 cancelled, stage);
+    EXPECT_TRUE(result.runtime == HolonightImages::RuntimeStatus::Success ||
+                result.runtime == HolonightImages::RuntimeStatus::Cancelled)
+        << result.diagnostic.toStdString();
+    return result.image;
+  }
+#endif
   static QImage image(int width = 128, int height = 128) {
     QImage value(width, height, QImage::Format_ARGB32);
     value.fill(Qt::red);

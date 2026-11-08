@@ -2,3 +2,13 @@
 include(CMakeFindDependencyMacro)
 find_dependency(Qt6 6.11 COMPONENTS Core Gui)
 include("${CMAKE_CURRENT_LIST_DIR}/HolonightThumbnailsTargets.cmake")
+
+if("Isolated" IN_LIST HolonightThumbnails_FIND_COMPONENTS)
+  find_dependency(HolonightImages CONFIG)
+  if(NOT TARGET HolonightImages::Isolated OR NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/HolonightThumbnailsIsolatedTargets.cmake")
+    set(HolonightThumbnails_FOUND FALSE)
+    set(HolonightThumbnails_NOT_FOUND_MESSAGE "Isolated thumbnails were not installed with an isolated Images provider")
+    return()
+  endif()
+  include("${CMAKE_CURRENT_LIST_DIR}/HolonightThumbnailsIsolatedTargets.cmake")
+endif()
