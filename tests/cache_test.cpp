@@ -1,3 +1,4 @@
+#include <QBuffer>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -56,8 +57,38 @@ class CacheTest : public ::testing::Test {
 #ifdef THUMBNAILS_ISOLATED_TEST
   static std::optional<QImage> lookup(const Request& request, const std::atomic_bool& cancelled,
                                       const StageCallback& stage = {}) {
+#ifdef THUMBNAILS_TRANSACTION_TEST
+    QByteArray captured("source");
+    QBuffer source(&captured);
+    source.open(QIODevice::ReadOnly);
+    const HolonightImages::Limits limits{.inputBytes = 32 * 1024 * 1024,
+                                         .sourcePixels = 1048576,
+                                         .sourceExtent = 1024,
+                                         .decodedBytes = 32 * 1024 * 1024,
+                                         .metadataBytes = 1048576,
+                                         .tiffMetadataBytes = 1048576,
+                                         .metadataRecords = 4096};
+    auto transaction =
+        HolonightImages::IsolatedClient(QString::fromUtf8(THUMBNAILS_TEST_RUNTIME))
+            .sourceTransaction(source, limits, cancelled,
+                               [&](const HolonightImages::Inspection&, HolonightImages::SourceTransaction& session) {
+                                 HolonightImages::DecodeResult selected;
+                                 auto image = lookupIsolated(request, session, cancelled, stage);
+                                 if (image) {
+                                   selected.image = std::move(*image);
+                                 }
+                                 return selected;
+                               });
+    IsolatedLookup result;
+    result.runtime = transaction.runtime;
+    result.diagnostic = transaction.diagnostic;
+    if (transaction.result && !transaction.result->image.isNull()) {
+      result.image = transaction.result->image;
+    }
+#else
     auto result = lookupIsolated(request, HolonightImages::IsolatedClient(QString::fromUtf8(THUMBNAILS_TEST_RUNTIME)),
                                  cancelled, stage);
+#endif
     EXPECT_TRUE(result.runtime == HolonightImages::RuntimeStatus::Success ||
                 result.runtime == HolonightImages::RuntimeStatus::Cancelled)
         << result.diagnostic.toStdString();

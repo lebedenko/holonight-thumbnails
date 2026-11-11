@@ -40,4 +40,29 @@ IsolatedLookup lookupIsolated(const Request& request, const HolonightImages::Iso
   }
   return result;
 }
+std::optional<QImage> lookupIsolated(const Request& request, HolonightImages::SourceTransaction& transaction,
+                                     const std::atomic_bool& cancelled, const StageCallback& stage) {
+  return detail::lookup(
+      request, cancelled, stage, [&](const QByteArray& bytes, int tier, bool&) -> std::optional<QImage> {
+        QBuffer source;
+        source.setData(bytes);
+        source.open(QIODevice::ReadOnly);
+        const HolonightImages::Limits limits{
+            .inputBytes = 32 * 1024 * 1024,
+            .sourcePixels = tier * tier,
+            .sourceExtent = tier,
+            .decodedBytes = 32 * 1024 * 1024,
+            .metadataBytes = 1024 * 1024,
+            .tiffMetadataBytes = 1024 * 1024,
+            .metadataRecords = 4096,
+        };
+        auto decoded = transaction.decodeCachedPng(
+            source,
+            {.limits = limits, .bound = {tier, tier}, .orientation = HolonightImages::OrientationPolicy::Ignore});
+        if (decoded.outcome != HolonightImages::Outcome::Success || decoded.inspection.format != "png") {
+          return std::nullopt;
+        }
+        return std::move(decoded.image);
+      });
+}
 }  // namespace HolonightThumbnails
