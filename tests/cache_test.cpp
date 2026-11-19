@@ -245,9 +245,9 @@ TEST_F(CacheTest, SelectedWriterPreservesPixelsColorAndMetadata) {
       request.kind = kind;
       auto pixels = image();
       if (texture) {
-        for (int y = 0; y < pixels.height(); ++y) {
-          for (int x = 0; x < pixels.width(); ++x) {
-            pixels.setPixel(x, y, qRgba(x * 13 % 256, y * 7 % 256, (x + y) % 256, 128));
+        for (int line = 0; line < pixels.height(); ++line) {
+          for (int column = 0; column < pixels.width(); ++column) {
+            pixels.setPixel(column, line, qRgba(column * 13 % 256, line * 7 % 256, (column + line) % 256, 128));
           }
         }
       }

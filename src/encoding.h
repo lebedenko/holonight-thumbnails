@@ -3,6 +3,7 @@
 #include <QImage>
 
 #include <algorithm>
+#include <span>
 
 namespace HolonightThumbnails::detail {
 
@@ -23,22 +24,25 @@ bool adaptiveNonuniform(const QImage& image, Cancelled cancelled) {
   if (image.width() < 2 || image.height() < 2) {
     return false;
   }
-  const int nx = std::min(32, image.width() - 1);
-  const int ny = std::min(32, image.height() - 1);
+  const int columns = std::min(32, image.width() - 1);
+  const int rows = std::min(32, image.height() - 1);
   int count = 0;
-  for (int j = 0; j < ny; ++j) {
+  for (int j = 0; j < rows; ++j) {
     if (cancelled()) {
       return false;
     }
-    const int y = 1 + ((2 * j + 1) * (image.height() - 1)) / (2 * ny);
-    const auto* row = reinterpret_cast<const quint32*>(image.constScanLine(y));
-    const auto* upper = reinterpret_cast<const quint32*>(image.constScanLine(y - 1));
-    for (int i = 0; i < nx; ++i) {
-      const int x = 1 + ((2 * i + 1) * (image.width() - 1)) / (2 * nx);
-      count += row[x] != row[x - 1] && row[x] != upper[x];
+    const int line = 1 + ((((2 * j) + 1) * (image.height() - 1)) / (2 * rows));
+    // Supported 32-bit formats provide aligned, contiguous stored pixels.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const std::span row(reinterpret_cast<const quint32*>(image.constScanLine(line)), image.width());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const std::span upper(reinterpret_cast<const quint32*>(image.constScanLine(line - 1)), image.width());
+    for (int i = 0; i < columns; ++i) {
+      const int column = 1 + ((((2 * i) + 1) * (image.width() - 1)) / (2 * columns));
+      count += row[column] != row[column - 1] && row[column] != upper[column];
     }
   }
-  return 4 * count >= nx * ny;
+  return 4 * count >= columns * rows;
 }
 
 }  // namespace HolonightThumbnails::detail

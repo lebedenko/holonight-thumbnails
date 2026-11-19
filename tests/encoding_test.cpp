@@ -1,19 +1,44 @@
 #include "../src/encoding.h"
 
+#include <array>
 #include <gtest/gtest.h>
 
 using HolonightThumbnails::detail::adaptiveNonuniform;
 
 namespace {
+int patternValue(int pattern, int column, int line) {
+  switch (pattern) {
+    case 0:
+      return 20;
+    case 1:
+      return column * 7;
+    case 2:
+      return (column % 2) * 200;
+    case 3:
+      return (line % 2) * 200;
+    case 4:
+      return column > 8 && column < 24 && line > 8 && line < 24 ? 100 : 20;
+    case 5:
+      return ((column + line) % 2) * 200;
+    default:
+      return ((column * 13) + (line * 7)) % 256;
+  }
+}
 constexpr auto running = [] { return false; };
 }  // namespace
 
 TEST(Encoding, SupportedFormatsIgnorePaddingAndDetectStoredPixelDifferences) {
-  for (auto format : {QImage::Format_RGB32, QImage::Format_ARGB32, QImage::Format_ARGB32_Premultiplied,
-                      QImage::Format_RGBX8888, QImage::Format_RGBA8888, QImage::Format_RGBA8888_Premultiplied}) {
+  for (auto format : {
+           QImage::Format_RGB32,
+           QImage::Format_ARGB32,
+           QImage::Format_ARGB32_Premultiplied,
+           QImage::Format_RGBX8888,
+           QImage::Format_RGBA8888,
+           QImage::Format_RGBA8888_Premultiplied,
+       }) {
     SCOPED_TRACE(static_cast<int>(format));
-    alignas(4) unsigned char bytes[32] = {};
-    QImage image(bytes, 2, 2, 16, format);
+    alignas(4) std::array<unsigned char, 32> bytes{};
+    QImage image(bytes.data(), 2, 2, 16, format);
     image.fill(QColor(31, 83, 149, 128));
     bytes[8] = 17;
     bytes[24] = 99;
@@ -26,16 +51,10 @@ TEST(Encoding, SupportedFormatsIgnorePaddingAndDetectStoredPixelDifferences) {
     EXPECT_FALSE(adaptiveNonuniform(tiny.transformed(QTransform().rotate(90)), running));
     for (int pattern = 0; pattern < 7; ++pattern) {
       QImage sample(33, 33, format);
-      for (int y = 0; y < 33; ++y) {
-        for (int x = 0; x < 33; ++x) {
-          const int v = pattern == 0   ? 20
-                        : pattern == 1 ? x * 7
-                        : pattern == 2 ? (x % 2) * 200
-                        : pattern == 3 ? (y % 2) * 200
-                        : pattern == 4 ? (x > 8 && x < 24 && y > 8 && y < 24 ? 100 : 20)
-                        : pattern == 5 ? (x + y) % 2 * 200
-                                       : (x * 13 + y * 7) % 256;
-          sample.setPixelColor(x, y, QColor(v, v, v, 128));
+      for (int line = 0; line < 33; ++line) {
+        for (int column = 0; column < 33; ++column) {
+          const int value = patternValue(pattern, column, line);
+          sample.setPixelColor(column, line, QColor(value, value, value, 128));
         }
       }
       EXPECT_EQ(adaptiveNonuniform(sample, running), pattern >= 5);
@@ -57,8 +76,8 @@ TEST(Encoding, ExactMidpointCoordinatesAndInclusiveQuarterBoundary) {
   // at those coordinates differ from both neighbors without affecting other samples.
   QImage image(65, 65, QImage::Format_RGB32);
   image.fill(Qt::black);
-  for (int n = 0; n < 255; ++n) {
-    image.setPixel(2 + 2 * (n % 32), 2 + 2 * (n / 32), qRgb(255, 255, 255));
+  for (int index = 0; index < 255; ++index) {
+    image.setPixel(2 + (2 * (index % 32)), 2 + (2 * (index / 32)), qRgb(255, 255, 255));
   }
   EXPECT_FALSE(adaptiveNonuniform(image, running));
   image.setPixel(64, 16, qRgb(255, 255, 255));
@@ -67,9 +86,9 @@ TEST(Encoding, ExactMidpointCoordinatesAndInclusiveQuarterBoundary) {
   EXPECT_TRUE(adaptiveNonuniform(image, running));
   // Odd coordinates are unsampled. A shifted grid would select these marks.
   image.fill(Qt::black);
-  for (int y = 1; y < 65; y += 2) {
-    for (int x = 1; x < 65; x += 2) {
-      image.setPixel(x, y, qRgb(255, 255, 255));
+  for (int line = 1; line < 65; line += 2) {
+    for (int column = 1; column < 65; column += 2) {
+      image.setPixel(column, line, qRgb(255, 255, 255));
     }
   }
   EXPECT_FALSE(adaptiveNonuniform(image, running));
@@ -77,9 +96,9 @@ TEST(Encoding, ExactMidpointCoordinatesAndInclusiveQuarterBoundary) {
 
 TEST(Encoding, ScansEntireGridAndCancelsBetweenRows) {
   QImage image(65, 65, QImage::Format_RGB32);
-  for (int y = 0; y < 65; ++y) {
-    for (int x = 0; x < 65; ++x) {
-      image.setPixel(x, y, qRgb((x + y) % 2 * 255, 0, 0));
+  for (int line = 0; line < 65; ++line) {
+    for (int column = 0; column < 65; ++column) {
+      image.setPixel(column, line, qRgb((column + line) % 2 * 255, 0, 0));
     }
   }
   int rows = 0;
