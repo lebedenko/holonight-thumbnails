@@ -1,4 +1,4 @@
-add_executable(thumbnails-test cache_test.cpp)
+add_executable(thumbnails-test cache_test.cpp encoding_test.cpp)
 target_link_libraries(thumbnails-test PRIVATE HolonightThumbnails::Thumbnails GTest::gtest GTest::gtest_main)
 add_test(NAME thumbnails COMMAND thumbnails-test)
 add_test(NAME installed-package COMMAND ${CMAKE_COMMAND}
