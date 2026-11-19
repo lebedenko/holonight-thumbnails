@@ -40,10 +40,12 @@ class CacheTest : public ::testing::Test {
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     ASSERT_EQ(file.write("source", 6), 6);
     file.close();
-    request = {.uri = QUrl::fromLocalFile(source),
-               .modified = QFileInfo(source).lastModified(),
-               .size = QFileInfo(source).size(),
-               .required = {100, 100}};
+    request = {
+        .uri = QUrl::fromLocalFile(source),
+        .modified = QFileInfo(source).lastModified(),
+        .size = QFileInfo(source).size(),
+        .required = {100, 100},
+    };
   }
 
   void TearDown() override {
