@@ -1,8 +1,10 @@
 #include <QBuffer>
+#include <QColorSpace>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImageWriter>
 #include <QTemporaryDir>
 
 #include <gtest/gtest.h>
@@ -236,3 +238,42 @@ TEST_F(CacheTest, DoesNotThumbnailTheCacheItself) {
 }
 
 }  // namespace
+
+TEST_F(CacheTest, SelectedWriterPreservesPixelsColorAndMetadata) {
+  for (const auto kind : {Kind::Raster, Kind::Svg}) {
+    for (const bool texture : {false, true}) {
+      request.kind = kind;
+      auto pixels = image();
+      if (texture) {
+        for (int y = 0; y < pixels.height(); ++y) {
+          for (int x = 0; x < pixels.width(); ++x) {
+            pixels.setPixel(x, y, qRgba(x * 13 % 256, y * 7 % 256, (x + y) % 256, 128));
+          }
+        }
+      }
+      pixels.setColorSpace(QColorSpace::SRgb);
+      pixels.setText(QStringLiteral("Test::Preserved"), QStringLiteral("value"));
+      ASSERT_TRUE(store(request, pixels, cancelled));
+      QFile file(cachePath(request.uri, 128));
+      ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+      const auto actual = file.readAll();
+      QImage decoded;
+      ASSERT_TRUE(decoded.loadFromData(actual, "PNG"));
+      EXPECT_EQ(decoded.convertToFormat(QImage::Format_RGBA8888), pixels.convertToFormat(QImage::Format_RGBA8888));
+      EXPECT_EQ(decoded.colorSpace(), pixels.colorSpace());
+      EXPECT_EQ(decoded.text(QStringLiteral("Test::Preserved")), QStringLiteral("value"));
+      ASSERT_TRUE(lookup(request, cancelled));
+      QByteArray expected;
+      QBuffer buffer(&expected);
+      ASSERT_TRUE(buffer.open(QIODevice::WriteOnly));
+      if (texture && kind == Kind::Raster) {
+        QImageWriter writer(&buffer, "PNG");
+        writer.setCompression(11);
+        ASSERT_TRUE(writer.write(decoded));
+      } else {
+        ASSERT_TRUE(decoded.save(&buffer, "PNG"));
+      }
+      EXPECT_EQ(actual, expected);
+    }
+  }
+}

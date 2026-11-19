@@ -1,9 +1,11 @@
+#include "encoding.h"
 #include "lookup.h"
 
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImageWriter>
 #include <QSaveFile>
 #include <QStandardPaths>
 
@@ -243,7 +245,13 @@ bool store(const Request& request, const QImage& image, const std::atomic_bool& 
     file.cancelWriting();
     return false;
   }
-  if (cancelled.load() || !tagged.save(&file, "PNG")) {
+  const bool compress =
+      request.kind == Kind::Raster && detail::adaptiveNonuniform(image, [&cancelled] { return cancelled.load(); });
+  QImageWriter writer(&file, "PNG");
+  if (compress) {
+    writer.setCompression(11);
+  }
+  if (cancelled.load() || !(compress ? writer.write(tagged) : tagged.save(&file, "PNG"))) {
     file.cancelWriting();
     return false;
   }
